@@ -9,6 +9,8 @@ quickstart.mdx         Inicio rápido: crear y consultar un documento
 authentication.mdx     X-API-Key y errores de autenticación
 idempotency.mdx        Idempotency-Key, reintentos y vigencia
 errors.mdx             Formato de error, estados y códigos
+webhooks.mdx           Contrato público de webhooks salientes; la fuente es
+                       signature-server/src/outbound-webhooks/README.md
 logo/ y favicon.png    Marca, copiada de signature-site/public/brand
 ```
 

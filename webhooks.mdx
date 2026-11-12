@@ -1,0 +1,247 @@
+---
+title: "Webhooks"
+description: "Recibe en tu sistema los eventos de firma de tus documentos."
+---
+
+<Note>
+  Los webhooks están en desarrollo. Este contrato es el que se publicará; todavía no se pueden configurar.
+</Note>
+
+Firmalo puede avisar a tu sistema cuando cambia el estado de firma de un documento, con un `POST` firmado a una URL HTTPS de tu organización. Así no tienes que consultar la API periódicamente.
+
+Por ahora se notifican los documentos creados con la API de integración, y cada organización tiene un solo endpoint.
+
+## Eventos
+
+| Evento | Cuándo ocurre |
+| --- | --- |
+| `document.collaborator_signed` | Un participante registra su firma. |
+| `document.signed` | Todos los firmantes completaron el documento. |
+| `document.rejected` | Un firmante rechaza el documento. |
+| `document.cancelled` | La cancelación del documento se confirma. |
+
+Cuando firma el último participante recibes dos eventos independientes, `document.collaborator_signed` y `document.signed`, cada uno con su propio `id`. No dependas del orden en que llegan.
+
+## Payload
+
+Todos los eventos comparten la misma forma:
+
+| Campo | Descripción |
+| --- | --- |
+| `id` | Identificador estable del evento. Es el mismo en cada reintento. |
+| `type` | Tipo de evento. |
+| `version` | Versión del contrato. Hoy, `1`. |
+| `occurredAt` | Momento del hecho, en ISO 8601 UTC. No es la hora del envío. |
+| `data` | Depende de `type`. |
+
+`data.document.status` es el estado del documento justo después del hecho: `PENDING_SIGNATURE`, `SIGNED`, `REJECTED` o `CANCELLED`. El `id` del participante es el mismo que devuelve la API de integración.
+
+<CodeGroup>
+
+```json document.collaborator_signed
+{
+  "id": "5d0b8c62-2f3e-4a7b-9c1d-6e4f8a2b0c13",
+  "type": "document.collaborator_signed",
+  "version": 1,
+  "occurredAt": "2026-11-11T18:30:00.000Z",
+  "data": {
+    "document": {
+      "id": "8f25e9d5-8998-4ec5-9a0e-1421ad48f743",
+      "status": "PENDING_SIGNATURE"
+    },
+    "participant": {
+      "id": "77f85c29-0104-4823-8b32-4bc567e88c6a",
+      "email": "firmante@empresa.com",
+      "status": "SIGNED",
+      "signedAt": "2026-11-11T18:30:00.000Z"
+    }
+  }
+}
+```
+
+```json document.signed
+{
+  "id": "a3c9e1f4-7b2d-4e8a-b6c0-1d5f9e3a7c28",
+  "type": "document.signed",
+  "version": 1,
+  "occurredAt": "2026-11-11T18:30:00.000Z",
+  "data": {
+    "document": {
+      "id": "8f25e9d5-8998-4ec5-9a0e-1421ad48f743",
+      "status": "SIGNED"
+    }
+  }
+}
+```
+
+```json document.rejected
+{
+  "id": "c7e2a9b1-4f6d-4c3e-8a0b-9d1e5f7a3b64",
+  "type": "document.rejected",
+  "version": 1,
+  "occurredAt": "2026-11-11T19:05:00.000Z",
+  "data": {
+    "document": {
+      "id": "8f25e9d5-8998-4ec5-9a0e-1421ad48f743",
+      "status": "REJECTED"
+    },
+    "participant": {
+      "id": "77f85c29-0104-4823-8b32-4bc567e88c6a",
+      "email": "firmante@empresa.com",
+      "status": "REJECTED",
+      "rejectedAt": "2026-11-11T19:05:00.000Z"
+    }
+  }
+}
+```
+
+```json document.cancelled
+{
+  "id": "e1f4b7c2-9a3d-4e6b-8c0f-2a5d8e1b4c97",
+  "type": "document.cancelled",
+  "version": 1,
+  "occurredAt": "2026-11-12T09:00:00.000Z",
+  "data": {
+    "document": {
+      "id": "8f25e9d5-8998-4ec5-9a0e-1421ad48f743",
+      "status": "CANCELLED"
+    }
+  }
+}
+```
+
+</CodeGroup>
+
+El payload nunca incluye el PDF, URLs de descarga, API keys, tokens, certificados, IP, geolocalización ni evidencia de firma. Para obtener más detalle del documento, consúltalo con la API usando `data.document.id`.
+
+Se pueden agregar campos nuevos sin cambiar `version`, así que ignora los que no conozcas. Quitar o renombrar un campo exigiría una versión nueva.
+
+## Headers
+
+```text
+Content-Type: application/json
+User-Agent: Firmalo-Webhooks/1.0
+X-Signature-Webhook-Id: 3b9d2f61-8c4e-4a7b-9e1d-5f0a2c8b6e43
+X-Signature-Event: document.collaborator_signed
+X-Signature-Timestamp: 1794421800
+X-Signature-Hmac: 9f2c4e…
+```
+
+| Header | Valor |
+| --- | --- |
+| `X-Signature-Webhook-Id` | Identificador de la entrega. Es el mismo en todos sus reintentos. |
+| `X-Signature-Event` | Tipo de evento, igual a `type`. |
+| `X-Signature-Timestamp` | Segundos Unix del momento en que se firmó este intento. |
+| `X-Signature-Hmac` | Firma de este intento, en hexadecimal minúsculo (64 caracteres). |
+
+## Verifica la firma
+
+Cada intento se firma con el secreto del endpoint:
+
+```text
+X-Signature-Hmac = hex( HMAC-SHA256( secret, timestamp + "." + rawBody ) )
+```
+
+- `secret` es el secreto completo, con su prefijo `whsec_`.
+- `timestamp` es el texto exacto de `X-Signature-Timestamp`.
+- `rawBody` son los bytes exactos del cuerpo recibido.
+
+<Steps>
+  <Step title="Lee el cuerpo crudo">
+    Calcula la firma sobre los bytes recibidos, antes de parsear el JSON. Si lo parseas y lo vuelves a serializar, la firma no coincidirá.
+  </Step>
+  <Step title="Revisa el timestamp">
+    Rechaza la entrega si faltan headers o si `X-Signature-Timestamp` difiere de tu reloj en más de 5 minutos.
+  </Step>
+  <Step title="Compara en tiempo constante">
+    Calcula la firma esperada y compárala con `X-Signature-Hmac` con una comparación de tiempo constante.
+  </Step>
+</Steps>
+
+<CodeGroup>
+
+```ts Node.js
+import { createHmac, timingSafeEqual } from 'crypto';
+
+export function verifyFirmaloWebhook(
+  rawBody: Buffer,
+  headers: Record<string, string | undefined>,
+  secret: string,
+): boolean {
+  const timestamp = headers['x-signature-timestamp'];
+  const received = headers['x-signature-hmac'];
+  if (!timestamp || !received) return false;
+  if (Math.abs(Date.now() / 1000 - Number(timestamp)) > 300) return false;
+
+  const expected = createHmac('sha256', secret)
+    .update(`${timestamp}.`)
+    .update(rawBody)
+    .digest('hex');
+
+  return (
+    received.length === expected.length &&
+    timingSafeEqual(Buffer.from(received), Buffer.from(expected))
+  );
+}
+```
+
+```python Python
+import hashlib
+import hmac
+import time
+
+
+def verify_firmalo_webhook(raw_body: bytes, headers: dict, secret: str) -> bool:
+    timestamp = headers.get("x-signature-timestamp")
+    received = headers.get("x-signature-hmac")
+    if not timestamp or not received:
+        return False
+    if abs(time.time() - int(timestamp)) > 300:
+        return False
+
+    expected = hmac.new(
+        secret.encode(), timestamp.encode() + b"." + raw_body, hashlib.sha256
+    ).hexdigest()
+    return hmac.compare_digest(received, expected)
+```
+
+</CodeGroup>
+
+<Warning>
+  En Express, usa `express.raw({ type: 'application/json' })` en la ruta del webhook. Con `express.json()` pierdes el cuerpo original.
+</Warning>
+
+## Responde y procesa
+
+- Responde con cualquier `2xx` para confirmar la entrega. El cuerpo de tu respuesta se ignora.
+- Responde en menos de 10 segundos. Si tu proceso tarda, guarda el evento, responde `200` y procésalo después.
+- Las redirecciones no se siguen: un `3xx` cuenta como fallo.
+
+## Reintentos
+
+Si tu endpoint no responde `2xx`, no contesta en 10 segundos o no se puede conectar, Firmalo reintenta la entrega. Son 8 intentos en total, en algo más de 24 horas:
+
+| Intento | Espera desde el anterior |
+| --- | --- |
+| 1 | Inmediato |
+| 2 | 1 minuto |
+| 3 | 5 minutos |
+| 4 | 30 minutos |
+| 5 | 2 horas |
+| 6 | 5 horas |
+| 7 | 10 horas |
+| 8 | 10 horas |
+
+Cada reintento lleva un timestamp y una firma nuevos, pero el mismo `X-Signature-Webhook-Id` y el mismo `id` de evento.
+
+La entrega es *al menos una vez*: un mismo evento puede llegar más de una vez. Deduplica por `id` antes de actuar.
+
+## Secreto y rotación
+
+- El secreto tiene el formato `whsec_…` y se muestra una sola vez, al configurar el endpoint o al rotarlo. Guárdalo en el gestor de secretos de tu backend.
+- Al rotar, las entregas nuevas se firman con el secreto nuevo, pero las que ya estaban pendientes se siguen firmando con el anterior. Acepta los dos secretos durante 24 horas después de rotar.
+
+## Requisitos del endpoint
+
+- URL `https://` en el puerto 443, accesible desde internet.
+- No se aceptan direcciones privadas, `localhost` ni direcciones internas de nube.
