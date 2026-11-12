@@ -1,0 +1,61 @@
+---
+title: "Idempotencia"
+description: "Reintenta la creación de un documento sin duplicarlo ni cobrarlo dos veces."
+---
+
+Una red inestable puede cortar la respuesta aunque el documento ya se haya creado. Para que puedas reintentar sin riesgo, `POST /api/v1/integration/documents` exige el header `Idempotency-Key`.
+
+```bash
+curl -X POST "$FIRMALO_API_URL/api/v1/integration/documents" \
+  -H "X-API-Key: $FIRMALO_API_KEY" \
+  -H "Idempotency-Key: erp-contrato-2026-000184" \
+  -F "file=@contrato.pdf;type=application/pdf" \
+  -F "payload=<$PAYLOAD_FILE"
+```
+
+Los demás endpoints no lo usan.
+
+## Elige la clave
+
+- Usa un valor único por documento, como el folio o el identificador del documento en tu sistema.
+- Debe tener de 1 a 255 caracteres ASCII visibles.
+- La clave es única por API key: dos llaves distintas pueden usar el mismo valor sin chocar.
+- Genérala una vez y guárdala junto al documento antes de la primera llamada, para reenviar exactamente la misma en cada reintento.
+
+## Qué pasa al repetir una petición
+
+La API compara la clave y el contenido de la petición: el PDF y el texto exacto del campo `payload`.
+
+| Situación | Respuesta |
+| --- | --- |
+| Clave nueva | `201` con el documento creado. |
+| Misma clave y mismo contenido, ya completada | `200` con el documento original y el header `Idempotent-Replayed: true`. No se sube, crea, cobra ni notifica nada. |
+| Misma clave y mismo contenido, aún en curso | `409 INTEGRATION_IDEMPOTENCY_KEY_IN_PROGRESS`. Espera unos segundos y repite. |
+| Misma clave con otro PDF u otro `payload` | `409 INTEGRATION_IDEMPOTENCY_KEY_MISMATCH`. Usa una clave nueva para un documento nuevo. |
+| Sin `Idempotency-Key` | `400 INTEGRATION_IDEMPOTENCY_KEY_REQUIRED`. |
+
+<Warning>
+  El `payload` se compara como texto. Si al reintentar lo serializas de nuevo con otro orden de campos u otros espacios, cuenta como otro contenido y la API responde `INTEGRATION_IDEMPOTENCY_KEY_MISMATCH`. Guarda el texto que enviaste y reenvía ese mismo.
+</Warning>
+
+## Cuánto dura una clave
+
+- Una clave completada se conserva **24 horas**. En ese plazo, cualquier reintento devuelve el documento original.
+- Pasadas las 24 horas, la clave se libera y una petición con ella crea un documento nuevo.
+- Si la creación falla (por ejemplo, por falta de créditos o un error de validación), la clave se libera de inmediato: corrige la causa y reintenta con la misma clave.
+
+## Estrategia de reintento recomendada
+
+<Steps>
+  <Step title="Reintenta los fallos de red y los 5xx">
+    Repite la misma petición, con la misma clave y el mismo contenido, con espera creciente entre intentos.
+  </Step>
+  <Step title="Trata el 409 en curso como transitorio">
+    `INTEGRATION_IDEMPOTENCY_KEY_IN_PROGRESS` significa que la primera petición sigue procesándose. Espera y repite.
+  </Step>
+  <Step title="No reintentes los 4xx de contenido">
+    Un `400`, `402` o `422` no se resuelve repitiendo. Corrige la petición o adquiere créditos; después puedes usar la misma clave.
+  </Step>
+</Steps>
+
+Todos los códigos de error están en [Errores](/errors).
