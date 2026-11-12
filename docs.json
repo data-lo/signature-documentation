@@ -29,7 +29,7 @@
           },
           {
             "group": "Conceptos",
-            "pages": ["idempotency", "errors"]
+            "pages": ["idempotency", "errors", "webhooks"]
           }
         ]
       },
