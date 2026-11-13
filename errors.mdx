@@ -27,7 +27,7 @@ Decide qué hacer a partir de `code`, que es estable. `message` es texto legible
 | --- | --- | --- |
 | `400` | La petición está mal formada, por ejemplo, falta `Idempotency-Key` o intenta elegir la organización. | Corrige la petición. |
 | `401` | La API key falta, es inválida, venció o fue revocada. | Revisa la [autenticación](/authentication). |
-| `402` | `INSUFFICIENT_DOCUMENT_CREDITS`: la organización no tiene créditos. | Adquiere créditos y reintenta con la misma `Idempotency-Key`. |
+| `402` | `INSUFFICIENT_DOCUMENT_CREDITS`: la organización no tiene créditos. | Consulta el saldo en `GET /api/v1/integration/organization/context` (`signatureQuota.documentsRemaining`), adquiere créditos y reintenta con la misma `Idempotency-Key`. |
 | `403` | La llave no está autorizada, o la organización o quien emitió la llave están inactivos. | Revisa la llave en Integraciones. |
 | `404` | El recurso no existe en tu organización. | Verifica los identificadores. |
 | `409` | Conflicto con el estado actual; consulta los casos abajo. | Depende del código. |
