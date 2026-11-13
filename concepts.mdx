@@ -1,0 +1,40 @@
+---
+title: "Conceptos"
+description: "Conoce el flujo de firma, los colaboradores y los tipos de firma disponibles."
+---
+
+## ¿Qué es un flujo de firma?
+
+Un flujo de firma define el recorrido de un documento desde que se crea hasta que todas las personas requeridas responden.
+
+1. Tu sistema crea el documento y define sus participantes.
+2. Firmalo prepara las invitaciones de firma.
+3. Cada participante firma, rechaza o queda pendiente de hacerlo.
+4. Cuando todos los firmantes completan su parte, el documento queda con estado `SIGNED`.
+
+Un flujo puede ser secuencial o paralelo. En un flujo secuencial, los firmantes actúan por turnos según su `order`; en uno paralelo, los firmantes pendientes pueden actuar en cualquier momento.
+
+## ¿Qué es un colaborador?
+
+Un colaborador es una persona que participa en un documento. Al crear el documento, se incluye en `participants` con su nombre y correo electrónico.
+
+Los roles disponibles son:
+
+| Rol | Función |
+| --- | --- |
+| `SIGNER` | Firma el documento. En un flujo secuencial debe incluir su turno en `order`. |
+| `WITNESS` | Participa como testigo y no determina el orden de firma. |
+
+Cada colaborador tiene un estado propio, por ejemplo `PENDING`, `SIGNED` o `REJECTED`. Un mismo correo sólo puede participar una vez en el mismo documento.
+
+## Tipos de firma
+
+El tipo de firma define las validaciones que Firmalo solicita a cada firmante.
+
+| Tipo en la API | Nombre | Validación principal |
+| --- | --- | --- |
+| `SIMPLE` | Firma simple | Verificación por correo e identidad. |
+| `ADVANCED` | Firma avanzada | Certificado, vigencia, revocación y titularidad, además de la firma criptográfica. |
+| `BIOMETRIC` | Firma biométrica | Sesión biométrica e identidad del firmante. |
+
+Define el tipo de firma con `document.signatureType` al crear el documento. Consulta los campos y reglas de cada tipo en la pestaña **Referencia API**.

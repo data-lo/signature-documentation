@@ -22,6 +22,7 @@
     "tabs": [
       {
         "tab": "Guías",
+<<<<<<< Updated upstream
         "pages": [
           {
             "group": "Introducción",
@@ -35,6 +36,9 @@
           },
           "webhooks"
         ]
+=======
+        "pages": ["index", "webhooks", "concepts", "authentication"]
+>>>>>>> Stashed changes
       },
       {
         "tab": "Referencia API",
