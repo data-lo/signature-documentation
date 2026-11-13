@@ -22,23 +22,7 @@
     "tabs": [
       {
         "tab": "Guías",
-<<<<<<< Updated upstream
-        "pages": [
-          {
-            "group": "Introducción",
-            "root": "index",
-            "pages": ["quickstart"]
-          },
-          "authentication",
-          {
-            "group": "Conceptos",
-            "pages": ["idempotency", "errors"]
-          },
-          "webhooks"
-        ]
-=======
         "pages": ["index", "webhooks", "concepts", "authentication"]
->>>>>>> Stashed changes
       },
       {
         "tab": "Referencia API",
