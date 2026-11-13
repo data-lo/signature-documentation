@@ -1,0 +1,42 @@
+{
+  "$schema": "https://mintlify.com/docs.json",
+  "theme": "mint",
+  "name": "Firmalo Developers",
+  "colors": {
+    "primary": "#3d5a99",
+    "light": "#7b93c7",
+    "dark": "#2a407a"
+  },
+  "favicon": "/favicon.png",
+  "logo": "/logo/firmalo.svg",
+  "appearance": {
+    "default": "light",
+    "strict": true
+  },
+  "api": {
+    "playground": {
+      "display": "none"
+    }
+  },
+  "navigation": {
+    "tabs": [
+      {
+        "tab": "Guías",
+        "groups": [
+          {
+            "group": "Primeros pasos",
+            "pages": ["index", "quickstart", "authentication"]
+          },
+          {
+            "group": "Conceptos",
+            "pages": ["idempotency", "errors"]
+          }
+        ]
+      },
+      {
+        "tab": "Referencia API",
+        "openapi": "https://api.firmalo.example/api/v1/integration/docs-json"
+      }
+    ]
+  }
+}
