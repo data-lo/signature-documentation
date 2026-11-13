@@ -27,13 +27,14 @@ Decide qué hacer a partir de `code`, que es estable. `message` es texto legible
 | --- | --- | --- |
 | `400` | La petición está mal formada, por ejemplo, falta `Idempotency-Key` o intenta elegir la organización. | Corrige la petición. |
 | `401` | La API key falta, es inválida, venció o fue revocada. | Revisa la [autenticación](/authentication). |
-| `402` | `INSUFFICIENT_DOCUMENT_CREDITS`: la organización no tiene créditos. | Adquiere créditos y reintenta con la misma `Idempotency-Key`. |
+| `402` | `INSUFFICIENT_DOCUMENT_CREDITS`: la organización no tiene créditos. | Consulta el saldo en `GET /api/v1/integration/organization/context` (`signatureQuota.documentsRemaining`), adquiere créditos y reintenta con la misma `Idempotency-Key`. |
 | `403` | La llave no está autorizada, o la organización o quien emitió la llave están inactivos. | Revisa la llave en Integraciones. |
 | `404` | El recurso no existe en tu organización. | Verifica los identificadores. |
 | `409` | Conflicto con el estado actual; consulta los casos abajo. | Depende del código. |
 | `422` | El contenido no pasó la validación. | Corrige el campo de `details.field`. |
 | `429` | `TOO_MANY_REQUESTS`: demasiados intentos para ese firmante. | Espera antes de reintentar. |
 | `500` | `INTERNAL_ERROR`: fallo inesperado. | Reintenta más tarde con la misma `Idempotency-Key`; consulta [Idempotencia](/idempotency). |
+| `503` | `WEBHOOK_SECRET_ENCRYPTION_UNAVAILABLE`: no se pudo generar el secreto del webhook. | Reintenta más tarde; no se guardó nada. |
 
 ## Conflictos al crear documentos
 
@@ -53,5 +54,12 @@ Decide qué hacer a partir de `code`, que es estable. `message` es texto legible
 | `INVALID_SIGNING_ORDER` | Falta `order` o no es un entero válido en un documento secuencial. |
 | `SIGNER_SIGNATURE_POSITION_REQUIRED` | Un firmante no tiene posición de firma. |
 | `SIGNATURE_POSITION_OVERLAP` | Dos posiciones de firma se traslapan en la misma página. |
+
+## Errores de webhooks
+
+| Código | Qué significa |
+| --- | --- |
+| `WEBHOOK_ENDPOINT_NOT_FOUND` | La organización no tiene un endpoint de webhooks configurado. Créalo con `PUT`. |
+| `WEBHOOK_URL_NOT_ALLOWED` | La URL no es un destino permitido; el motivo va en `details.reason`. Consulta [Webhooks](/webhooks). |
 
 La pestaña **Referencia API** lista los errores de cada endpoint.
