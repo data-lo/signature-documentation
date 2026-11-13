@@ -4,12 +4,60 @@ description: "Recibe en tu sistema los eventos de firma de tus documentos."
 ---
 
 <Note>
-  Los webhooks están en desarrollo. Este contrato es el que se publicará; todavía no se pueden configurar.
+  Ya puedes configurar el endpoint, consultar su configuración, rotar su secreto y desactivarlo. El envío de eventos se está habilitando: cuando esté disponible, tu endpoint empezará a recibir los eventos suscritos sin que tengas que cambiar nada.
 </Note>
 
 Firmalo puede avisar a tu sistema cuando cambia el estado de firma de un documento, con un `POST` firmado a una URL HTTPS de tu organización. Así no tienes que consultar la API periódicamente.
 
 Por ahora se notifican los documentos creados con la API de integración, y cada organización tiene un solo endpoint.
+
+## Configura el endpoint
+
+La configuración se administra con la API de integración, con la API key de tu organización. Los endpoints están en la sección **Webhooks** de la pestaña **Referencia API**.
+
+| Operación | Endpoint | Permiso de la llave |
+| --- | --- | --- |
+| Crear o actualizar | `PUT /api/v1/integration/webhooks/endpoint` | `WEBHOOK.MANAGE` |
+| Consultar | `GET /api/v1/integration/webhooks/endpoint` | `WEBHOOK.READ` |
+| Rotar el secreto | `POST /api/v1/integration/webhooks/endpoint/rotate-secret` | `WEBHOOK.MANAGE` |
+| Desactivar | `DELETE /api/v1/integration/webhooks/endpoint` | `WEBHOOK.MANAGE` |
+
+Estos permisos son independientes de los de documentos: concédelos a la llave al emitirla o rotarla en **Integraciones**.
+
+```bash
+curl -X PUT "$FIRMALO_API_URL/api/v1/integration/webhooks/endpoint"   -H "X-API-Key: $FIRMALO_API_KEY"   -H "Content-Type: application/json"   -d '{
+    "url": "https://erp.cliente.com/webhooks/firmalo",
+    "events": ["document.collaborator_signed", "document.signed", "document.rejected", "document.cancelled"]
+  }'
+```
+
+La primera vez responde `201` con el secreto en `data.secret`:
+
+```json
+{
+  "success": true,
+  "message": "Endpoint de webhooks creado correctamente",
+  "data": {
+    "id": "0c7a4f2e-9d1b-4e6a-8f3c-2b5d7e9a1c40",
+    "url": "https://erp.cliente.com/webhooks/firmalo",
+    "status": "ACTIVE",
+    "events": ["document.collaborator_signed", "document.signed", "document.rejected", "document.cancelled"],
+    "secretVersion": 1,
+    "createdAt": "2026-11-12T18:00:00.000Z",
+    "updatedAt": "2026-11-12T18:00:00.000Z",
+    "disabledAt": null,
+    "secret": "whsec_ZXhhbXBsZS1ub3QtYS1yZWFsLXNlY3JldC0xMjM0NTY3ODk"
+  }
+}
+```
+
+<Warning>
+  El secreto sólo se muestra en esta respuesta y al rotarlo. Guárdalo en el gestor de secretos de tu backend; ninguna consulta lo vuelve a devolver.
+</Warning>
+
+- Repetir el `PUT` cambia la URL y los eventos y responde `200` sin secreto: el secreto se conserva.
+- `DELETE` desactiva el endpoint (`status: DISABLED`): deja de registrar entregas nuevas, pero las ya registradas se siguen enviando. Un `PUT` lo reactiva con el mismo secreto.
+- Sin endpoint configurado, `GET`, `DELETE` y la rotación responden `404 WEBHOOK_ENDPOINT_NOT_FOUND`.
 
 ## Eventos
 
@@ -239,9 +287,12 @@ La entrega es *al menos una vez*: un mismo evento puede llegar más de una vez. 
 ## Secreto y rotación
 
 - El secreto tiene el formato `whsec_…` y se muestra una sola vez, al configurar el endpoint o al rotarlo. Guárdalo en el gestor de secretos de tu backend.
+- Para rotarlo, llama a `POST /api/v1/integration/webhooks/endpoint/rotate-secret`. La respuesta trae el secreto nuevo en `data.secret` y `secretVersion` sube en 1.
 - Al rotar, las entregas nuevas se firman con el secreto nuevo, pero las que ya estaban pendientes se siguen firmando con el anterior. Acepta los dos secretos durante 24 horas después de rotar.
 
 ## Requisitos del endpoint
 
-- URL `https://` en el puerto 443, accesible desde internet.
-- No se aceptan direcciones privadas, `localhost` ni direcciones internas de nube.
+- URL `https://` en el puerto 443, accesible desde internet, sin usuario ni contraseña.
+- No se aceptan direcciones privadas, `localhost` ni direcciones internas de nube, tampoco un nombre que resuelva a una de ellas.
+
+Si la URL no cumple, el `PUT` responde `422 WEBHOOK_URL_NOT_ALLOWED` con el motivo en `details.reason`: `INVALID_URL`, `HTTPS_REQUIRED`, `PORT_NOT_ALLOWED`, `CREDENTIALS_NOT_ALLOWED`, `HOST_NOT_ALLOWED` o `HOST_NOT_RESOLVABLE`.
