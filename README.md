@@ -26,7 +26,7 @@ La pestaña **Referencia API** no tiene archivos aquí: Mintlify lee en cada des
 ## Agregar una página
 
 1. Crea el `.mdx` con `title` y `description` en el frontmatter.
-2. Agrega su ruta, sin extensión, al grupo que corresponda en `docs.json`.
+2. Agrega su ruta, sin extensión, a `navigation.tabs[0].pages` de `docs.json`. Ese arreglo no usa encabezados de grupo: cada entrada es una página suelta (`"authentication"`, `"webhooks"`) o una sección desplegable (`{ "group": "Conceptos", "pages": [...] }`). Con `root`, la sección abre esa página al hacer clic, como **Introducción** con `index`.
 3. Revísala en local.
 
 En `.mdx`, escribe entre comillas invertidas todo lo que lleve `<` o `{`, como `fma_live_<publicId>_<secret>`: fuera de código se interpreta como JSX.

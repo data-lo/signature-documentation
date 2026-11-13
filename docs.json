@@ -22,15 +22,18 @@
     "tabs": [
       {
         "tab": "Guías",
-        "groups": [
+        "pages": [
           {
-            "group": "Primeros pasos",
-            "pages": ["index", "quickstart", "authentication"]
+            "group": "Introducción",
+            "root": "index",
+            "pages": ["quickstart"]
           },
+          "authentication",
           {
             "group": "Conceptos",
-            "pages": ["idempotency", "errors", "webhooks"]
-          }
+            "pages": ["idempotency", "errors"]
+          },
+          "webhooks"
         ]
       },
       {
