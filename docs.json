@@ -22,20 +22,23 @@
     "tabs": [
       {
         "tab": "Guías",
-        "groups": [
+        "pages": [
           {
-            "group": "Primeros pasos",
-            "pages": ["index", "quickstart", "authentication"]
+            "group": "Introducción",
+            "root": "index",
+            "pages": ["quickstart"]
           },
+          "authentication",
           {
             "group": "Conceptos",
             "pages": ["idempotency", "errors"]
-          }
+          },
+          "webhooks"
         ]
       },
       {
         "tab": "Referencia API",
-        "openapi": "https://api.firmalo.example/api/v1/integration/docs-json"
+        "openapi": "https://signature.api.staging.data-lo.online/api/v1/integration/docs-json"
       }
     ]
   }
