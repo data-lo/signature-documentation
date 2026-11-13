@@ -1,5 +1,5 @@
 ---
-title: "Errores"
+title: "Manejo de errores"
 description: "Cómo interpretar las respuestas de error de la API."
 ---
 
@@ -33,7 +33,7 @@ Decide qué hacer a partir de `code`, que es estable. `message` es texto legible
 | `409` | Conflicto con el estado actual; consulta los casos abajo. | Depende del código. |
 | `422` | El contenido no pasó la validación. | Corrige el campo de `details.field`. |
 | `429` | `TOO_MANY_REQUESTS`: demasiados intentos para ese firmante. | Espera antes de reintentar. |
-| `500` | `INTERNAL_ERROR`: fallo inesperado. | Reintenta más tarde con la misma `Idempotency-Key`; consulta [Idempotencia](/idempotency). |
+| `500` | `INTERNAL_ERROR`: fallo inesperado. | Reintenta más tarde con la misma `Idempotency-Key`; consulta [Idempotencia](/guides/idempotency). |
 
 ## Conflictos al crear documentos
 
@@ -54,4 +54,4 @@ Decide qué hacer a partir de `code`, que es estable. `message` es texto legible
 | `SIGNER_SIGNATURE_POSITION_REQUIRED` | Un firmante no tiene posición de firma. |
 | `SIGNATURE_POSITION_OVERLAP` | Dos posiciones de firma se traslapan en la misma página. |
 
-La pestaña **Referencia API** lista los errores de cada endpoint.
+La sección **Referencia de API** lista los errores de cada endpoint.
