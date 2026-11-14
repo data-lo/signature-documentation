@@ -1,50 +1,43 @@
 ---
 title: "Introducción"
-description: "Integra la firma electrónica de Firmalo en tu sistema."
+description: "Integra el flujo de firma a través de la API de Firmalo."
 ---
 
-La API de integración de Firmalo permite que tu sistema cree documentos PDF con su flujo de firmas, consulte su estado y gestione el acceso de los firmantes, sin que tus usuarios tengan que entrar a la plataforma para iniciar el proceso.
+La API de Firmalo permite que tu sistema cree documentos PDF con su flujo de firmas, consulte su estado y gestione el acceso de los firmantes, sin que tus usuarios tengan que entrar a la plataforma para iniciar el proceso.
 
 ## Qué puedes hacer
 
-- Crear un documento a partir de un PDF e invitar a sus firmantes y testigos por correo.
-- Consultar los documentos de tu organización, o los de uno de sus usuarios, y su estado.
-- Reenviar la invitación de un firmante.
-- Generar una URL temporal para que un firmante firme desde tu portal.
-- Consultar el saldo de documentos, el plan y el ciclo de facturación de tu organización.
+- Crear flujos de firma: envía un PDF, asigna firmantes y agrega testigos de forma automatizada.
+- Consultar documentos: filtra y revisa los documentos de tu organización o de uno de sus usuarios.
+- Elegir tipos de firma: usa firma simple, avanzada con e.firma o biométrica según el flujo que requieras.
+- Consultar la organización: revisa el saldo de documentos, el plan activo y el ciclo de facturación.
 
 ## Cómo funciona
 
 <Steps>
   <Step title="Tu backend crea el documento">
-    Envía el PDF y los datos de los participantes con la API key de tu organización. Cada documento creado consume un crédito.
+    Envía el PDF y los datos de los participantes con la API key de tu organización. Firmalo reserva un crédito de documento y crea el flujo con estado `PENDING_SIGNATURE`.
   </Step>
   <Step title="Firmalo invita a los participantes">
     Cada participante recibe un correo. En un documento secuencial, los firmantes firman uno a la vez.
   </Step>
   <Step title="Tu sistema consulta el resultado">
-    Consulta el estado del documento hasta que quede firmado.
+    Consulta el estado del documento hasta que quede `SIGNED`, `REJECTED` o `CANCELLED`.
   </Step>
 </Steps>
 
 <Warning>
-  Llama a la API sólo desde tu backend. Nunca expongas la API key en un navegador o una app móvil.
+  Llama a la API únicamente desde tu backend. Nunca expongas la API key en un navegador, una app móvil o código del cliente.
 </Warning>
 
 ## Continúa con
 
 <CardGroup cols={2}>
-  <Card title="Inicio rápido" icon="rocket" href="/quickstart">
-    Crea tu primer documento.
+  <Card title="Conceptos" icon="book-open" href="/concepts">
+    Conoce el flujo de firma, los colaboradores y los tipos de firma.
   </Card>
   <Card title="Autenticación" icon="key" href="/authentication">
     Cómo presentar la API key de tu organización.
-  </Card>
-  <Card title="Idempotencia" icon="rotate" href="/idempotency">
-    Reintenta sin crear ni cobrar documentos duplicados.
-  </Card>
-  <Card title="Errores" icon="triangle-exclamation" href="/errors">
-    Qué responde la API cuando algo falla.
   </Card>
   <Card title="Webhooks" icon="bell" href="/webhooks">
     Recibe los eventos de firma en tu sistema.

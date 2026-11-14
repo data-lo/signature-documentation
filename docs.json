@@ -22,7 +22,7 @@
     "tabs": [
       {
         "tab": "Guías",
-        "pages": ["index", "webhooks", "concepts", "authentication"]
+        "pages": ["index", "concepts", "authentication", "webhooks"]
       },
       {
         "tab": "Referencia API",

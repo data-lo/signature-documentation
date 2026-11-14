@@ -1,22 +1,26 @@
 ---
 title: "Conceptos"
-description: "Conoce el flujo de firma, los colaboradores y los tipos de firma disponibles."
+description: "Definiciones fundamentales sobre flujos de firma, colaboradores y tipos de firma."
 ---
 
 ## ¿Qué es un flujo de firma?
 
-Un flujo de firma define el recorrido de un documento desde que se crea hasta que todas las personas requeridas responden.
+Un flujo de firma es el conjunto de reglas que determina quién debe intervenir en un documento, qué acción debe realizar cada persona y en qué momento puede hacerlo. Su objetivo es llevar el documento a una resolución verificable: firmado, rechazado o cancelado.
 
-1. Tu sistema crea el documento y define sus participantes.
-2. Firmalo prepara las invitaciones de firma.
-3. Cada participante firma, rechaza o queda pendiente de hacerlo.
-4. Cuando todos los firmantes completan su parte, el documento queda con estado `SIGNED`.
+Un flujo está formado por cuatro elementos:
 
-Un flujo puede ser secuencial o paralelo. En un flujo secuencial, los firmantes actúan por turnos según su `order`; en uno paralelo, los firmantes pendientes pueden actuar en cualquier momento.
+- **Documento:** el contenido sobre el que se solicita una decisión o firma.
+- **Colaboradores:** las personas vinculadas al documento y su función dentro del proceso.
+- **Orden de intervención:** define si las firmas ocurren una después de otra o de forma simultánea.
+- **Estados:** registran la situación del documento y de cada colaborador mientras el proceso está abierto.
+
+Un flujo puede ser **secuencial** o **paralelo**. En el secuencial, un firmante espera a que el anterior complete su acción; en el paralelo, los firmantes pueden actuar de manera independiente. El flujo concluye cuando se cumplen todas las firmas requeridas o cuando una acción impide que continúe.
 
 ## ¿Qué es un colaborador?
 
-Un colaborador es una persona que participa en un documento. Al crear el documento, se incluye en `participants` con su nombre y correo electrónico.
+Un colaborador es una persona relacionada con un documento. No es necesariamente un usuario de la plataforma: es una identidad que participa en el flujo con un rol, datos de contacto y un estado propios.
+
+Cada colaborador conserva su relación con el documento a lo largo del proceso. Por ejemplo, puede estar pendiente de actuar, haber firmado o haber rechazado. Esta información permite conocer quién intervino y cuál fue el resultado de su participación.
 
 Los roles disponibles son:
 
@@ -25,11 +29,11 @@ Los roles disponibles son:
 | `SIGNER` | Firma el documento. En un flujo secuencial debe incluir su turno en `order`. |
 | `WITNESS` | Participa como testigo y no determina el orden de firma. |
 
-Cada colaborador tiene un estado propio, por ejemplo `PENDING`, `SIGNED` o `REJECTED`. Un mismo correo sólo puede participar una vez en el mismo documento.
+Un mismo correo solo puede participar una vez en el mismo documento. Así, cada colaboración representa una intervención única y trazable.
 
 ## Tipos de firma
 
-El tipo de firma define las validaciones que Firmalo solicita a cada firmante.
+Un tipo de firma define el nivel y la naturaleza de las validaciones que respaldan la acción de un firmante. No cambia el documento; cambia la evidencia y los requisitos asociados a la firma.
 
 | Tipo en la API | Nombre | Validación principal |
 | --- | --- | --- |
@@ -37,4 +41,8 @@ El tipo de firma define las validaciones que Firmalo solicita a cada firmante.
 | `ADVANCED` | Firma avanzada | Certificado, vigencia, revocación y titularidad, además de la firma criptográfica. |
 | `BIOMETRIC` | Firma biométrica | Sesión biométrica e identidad del firmante. |
 
-Define el tipo de firma con `document.signatureType` al crear el documento. Consulta los campos y reglas de cada tipo en la pestaña **Referencia API**.
+La firma simple se apoya en la identidad y aceptación de la persona firmante. La firma avanzada utiliza un certificado y una operación criptográfica para vincular la firma con su titular. La firma biométrica añade una verificación de identidad basada en rasgos biométricos antes de completar la firma.
+
+<Note>
+  El tipo de firma describe los controles técnicos del flujo. Los efectos jurídicos de un documento dependen de la legislación aplicable, el contexto de uso y la evidencia conservada.
+</Note>
