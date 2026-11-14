@@ -1,0 +1,84 @@
+---
+title: "Acceso de firma e invitaciones"
+description: "Abre la firma desde tu portal con un acceso temporal, o reenvía la invitación por correo a un firmante."
+---
+
+Al crear un documento, Firmalo envía a cada firmante una invitación por correo. Si el firmante usa tu portal, o si no recibió el correo, tienes dos opciones:
+
+| Operación | Endpoint | Permiso de la llave |
+| --- | --- | --- |
+| Generar un acceso temporal de firma | `POST /api/v1/integration/documents/{documentId}/signing-access` | `DOCUMENT.CREATE`, alcance `ORGANIZATION` |
+| Reenviar la invitación de firma | `POST /api/v1/integration/documents/{documentId}/collaborators/resend-invitation` | `DOCUMENT.CREATE`, alcance `ORGANIZATION` |
+
+En ambas, `documentId` es el `id` que devolvió la creación del documento y el firmante se identifica por su correo en el cuerpo.
+
+## Genera un acceso temporal de firma
+
+Devuelve una URL para que el firmante abra la firma desde tu portal, sin buscar el correo de invitación.
+
+```bash
+curl -X POST "$FIRMALO_API_URL/api/v1/integration/documents/$DOCUMENT_ID/signing-access" \
+  -H "X-API-Key: $FIRMALO_API_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{ "email": "luis.martinez@correo.example" }'
+```
+
+```json
+{
+  "success": true,
+  "message": "Acceso temporal de firma generado",
+  "data": {
+    "url": "https://app.firmalo.com/sign/launch/EjemploDeTokenNoReal",
+    "expiresAt": "2026-10-26T12:05:00.000Z"
+  }
+}
+```
+
+- La URL es de un solo uso y vence a los **5 minutos**. Genérala justo cuando el firmante vaya a abrirla y redirígelo de inmediato; no la guardes ni la envíes por correo.
+- El correo sólo localiza al firmante. Al abrir la URL, Firmalo le envía un código a ese correo y no muestra el documento ni permite firmar hasta que lo valida.
+- Se admiten diez accesos cada 10 minutos por firmante.
+
+<Warning>
+  Llama a este endpoint desde tu backend, después de autenticar al usuario en tu portal. Nunca desde el navegador: la llamada lleva tu API key.
+</Warning>
+
+## Reenvía la invitación de firma
+
+Emite una invitación nueva y la envía al correo del firmante. La invitación anterior deja de servir. El enlace nunca se devuelve en la respuesta.
+
+```bash
+curl -X POST "$FIRMALO_API_URL/api/v1/integration/documents/$DOCUMENT_ID/collaborators/resend-invitation" \
+  -H "X-API-Key: $FIRMALO_API_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{ "email": "luis.martinez@correo.example" }'
+```
+
+```json
+{
+  "success": true,
+  "message": "Invitación reenviada al correo del firmante",
+  "data": {
+    "email": "luis.martinez@correo.example",
+    "invitationExpiresAt": "2026-11-02T12:00:00.000Z",
+    "emailDelivered": true
+  }
+}
+```
+
+- Con `emailDelivered: false`, la invitación se emitió pero el correo no se pudo entregar. Puedes reintentar más tarde.
+- Se admite un reenvío cada 10 minutos y diez por día por firmante.
+
+## Errores
+
+| Estado | Código | Qué significa |
+| --- | --- | --- |
+| `404` | `INTEGRATION_SIGNER_NOT_FOUND` | El documento no es de tu organización o ningún firmante tiene ese correo. |
+| `409` | `WAITING_FOR_PREVIOUS_SIGNER` | Sólo en el acceso temporal: en un documento secuencial, todavía no es el turno de ese firmante. |
+| `409` | `INTEGRATION_AMBIGUOUS_SIGNER` | El correo corresponde a más de un firmante del documento. |
+| `409` | `INTEGRATION_INVITATION_NOT_RESENDABLE` | El documento ya no espera la firma de esa persona, o firma desde su cuenta de Firmalo. En el reenvío, también si todavía no es su turno. |
+| `422` | `INVALID_REQUEST` | Falta `email` o no es un correo válido. |
+| `429` | `TOO_MANY_REQUESTS` | Se superó el límite de accesos o de reenvíos para ese firmante. Espera antes de reintentar. |
+
+<Note>
+  La ruta anterior de reenvío, que identificaba al firmante por su identificador interno (`.../collaborators/{collaboratorId}/resend-invitation`), responde `410 INTEGRATION_ENDPOINT_RETIRED`, con la ruta nueva en `details.replacedBy`. Usa el correo en el cuerpo.
+</Note>

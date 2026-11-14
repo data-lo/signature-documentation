@@ -1,0 +1,61 @@
+---
+title: "Catálogo de servicios"
+description: "Qué puedes hacer con la API de integración y qué permiso necesita la API key para cada operación."
+---
+
+La API de integración agrupa sus operaciones en cuatro servicios. Todas se autentican con la [API key](/authentication) de tu organización en el header `X-API-Key`, y la organización sale siempre de la llave.
+
+## Documentos
+
+| Operación | Endpoint | Permiso de la llave |
+| --- | --- | --- |
+| Crear un documento con su flujo de firmas | `POST /api/v1/integration/documents` | `DOCUMENT.CREATE`, alcance `ORGANIZATION` |
+| Consultar los documentos de la organización | `GET /api/v1/integration/documents` | `DOCUMENT.READ`, alcance `ORGANIZATION` |
+| Consultar los documentos creados por un usuario | `GET /api/v1/integration/users/documents?email=` | `DOCUMENT.READ`, alcance `OWN` u `ORGANIZATION` |
+
+Con alcance `OWN`, la llave sólo puede consultar los documentos de quien la emitió. Detalle en [Documentos](/documents).
+
+## Organización y créditos
+
+| Operación | Endpoint | Permiso de la llave |
+| --- | --- | --- |
+| Consultar la organización, su saldo de documentos y su plan | `GET /api/v1/integration/organization/context` | `DOCUMENT.READ`, alcance `ORGANIZATION` |
+
+Detalle en [Organización y créditos](/organization-and-credits).
+
+## Acceso de firma e invitaciones
+
+| Operación | Endpoint | Permiso de la llave |
+| --- | --- | --- |
+| Generar un acceso temporal de firma | `POST /api/v1/integration/documents/{documentId}/signing-access` | `DOCUMENT.CREATE`, alcance `ORGANIZATION` |
+| Reenviar la invitación de firma | `POST /api/v1/integration/documents/{documentId}/collaborators/resend-invitation` | `DOCUMENT.CREATE`, alcance `ORGANIZATION` |
+
+Detalle en [Acceso de firma e invitaciones](/signing-access).
+
+## Webhooks
+
+| Operación | Endpoint | Permiso de la llave |
+| --- | --- | --- |
+| Consultar el endpoint de webhooks | `GET /api/v1/integration/webhooks/endpoint` | `WEBHOOK.READ` |
+| Crear o actualizar el endpoint | `PUT /api/v1/integration/webhooks/endpoint` | `WEBHOOK.MANAGE` |
+| Rotar el secreto | `POST /api/v1/integration/webhooks/endpoint/rotate-secret` | `WEBHOOK.MANAGE` |
+| Desactivar el endpoint | `DELETE /api/v1/integration/webhooks/endpoint` | `WEBHOOK.MANAGE` |
+| Consultar la preferencia de envío | `GET /api/v1/integration/settings` | `INTEGRATION_SETTINGS.READ` |
+| Cambiar la preferencia de envío | `PATCH /api/v1/integration/settings` | `INTEGRATION_SETTINGS.UPDATE` |
+
+Ya puedes configurar el endpoint, pero el envío de eventos todavía se está habilitando. Detalle en [Webhooks](/webhooks).
+
+## Qué no forma parte de esta API
+
+La API de integración **consulta** el saldo, el plan y el ciclo de facturación, pero no los modifica. Estas operaciones se hacen en Firmalo, con un usuario de tu organización, y no tienen endpoint de integración:
+
+- Comprar o recargar créditos de documento.
+- Contratar, cambiar o cancelar un plan, y pagar.
+- Administrar los datos de facturación y los métodos de pago.
+- Emitir, rotar o revocar API keys, y administrar miembros, roles y permisos.
+
+Una ruta que no aparece en este catálogo ni en la pestaña **Referencia API** no es parte del contrato de integración, aunque responda.
+
+## Permisos de la llave
+
+Cada llave lleva los permisos que se le concedieron al emitirla o rotarla en **Integraciones**. Una operación sin el permiso necesario responde `403 API_KEY_PERMISSION_DENIED`, y `message` indica el permiso que faltó. Los permisos de webhooks y de configuración son independientes de los de documentos: `DOCUMENT.CREATE` no da acceso a ellos.

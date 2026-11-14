@@ -11,6 +11,12 @@ idempotency.mdx        Idempotency-Key, reintentos y vigencia
 errors.mdx             Formato de error, estados y códigos
 webhooks.mdx           Contrato público de webhooks salientes; la fuente es
                        signature-server/src/outbound-webhooks/README.md
+services.mdx           Catálogo de servicios: cada endpoint de integración y su
+                       permiso, y lo que NO es parte de la API (compras, facturación)
+documents.mdx          Crear y consultar documentos
+organization-and-credits.mdx
+                       Contexto de organización, saldo (documentsRemaining) y plan
+signing-access.mdx     Acceso temporal de firma y reenvío de invitaciones
 logo/ y favicon.png    Marca, copiada de signature-site/public/brand
 ```
 
@@ -18,7 +24,7 @@ logo/ y favicon.png    Marca, copiada de signature-site/public/brand
 
 La pestaña **Referencia API** no tiene archivos aquí: Mintlify lee en cada despliegue el contrato que publica el backend en `https://<api-producción>/api/v1/integration/docs-json`. Ese contrato sólo contiene las rutas `/api/v1/integration/...`, así que un endpoint nuevo aparece al redesplegar este sitio, sin cambios en este repositorio.
 
-- La URL está en `navigation.tabs[1].openapi` de `docs.json`. Mientras no se defina el host de producción apunta a `https://api.firmalo.example`, que no existe: el build falla hasta reemplazarla.
+- La URL está en `navigation.tabs[2].openapi` de `docs.json` (la pestaña **Referencia API**). Hoy apunta al contrato de staging: un cambio del contrato sólo se ve aquí después de desplegar el backend en staging y redesplegar este sitio. Las guías de **Servicios de la API** deben coincidir con ese contrato.
 - Mintlify sólo acepta URLs `https://` en producción.
 - El playground está desactivado (`api.playground.display: "none"`): la referencia es de consulta.
 - El contrato no declara `servers`, así que la referencia muestra las rutas sin host.
@@ -26,7 +32,7 @@ La pestaña **Referencia API** no tiene archivos aquí: Mintlify lee en cada des
 ## Agregar una página
 
 1. Crea el `.mdx` con `title` y `description` en el frontmatter.
-2. Agrega su ruta, sin extensión, a `navigation.tabs[0].pages` de `docs.json`. Ese arreglo no usa encabezados de grupo: cada entrada es una página suelta (`"authentication"`, `"webhooks"`) o una sección desplegable (`{ "group": "Conceptos", "pages": [...] }`). Con `root`, la sección abre esa página al hacer clic, como **Introducción** con `index`.
+2. Agrega su ruta, sin extensión, a `navigation.tabs[0].pages` (**Guías**) o `navigation.tabs[1].pages` (**Servicios de la API**) de `docs.json`. Si agregas un servicio, súmalo también a la tabla de `services.mdx`. Esos arreglos no usa encabezados de grupo: cada entrada es una página suelta (`"authentication"`, `"webhooks"`) o una sección desplegable (`{ "group": "Conceptos", "pages": [...] }`). Con `root`, la sección abre esa página al hacer clic, como **Introducción** con `index`.
 3. Revísala en local.
 
 En `.mdx`, escribe entre comillas invertidas todo lo que lleve `<` o `{`, como `fma_live_<publicId>_<secret>`: fuera de código se interpreta como JSX.
@@ -48,4 +54,4 @@ Se hace una vez desde el [panel de Mintlify](https://app.mintlify.com), con perm
 1. Crea el proyecto en Mintlify y conecta `data-lo/signature-documentation` con su GitHub App; `docs.json` está en la raíz.
 2. Elige la rama de despliegue.
 3. En **Custom domain**, configura el dominio público y crea el `CNAME` que indica el panel.
-4. Comprueba en el panel que el despliegue termine bien y que la pestaña **Referencia API** liste los cinco endpoints.
+4. Comprueba en el panel que el despliegue termine bien y que la pestaña **Referencia API** muestre los grupos **Integration Documents**, **Organización** y **Webhooks**.

@@ -1,0 +1,159 @@
+---
+title: "Organización y créditos"
+description: "Consulta la organización de tu API key, cuántos documentos puedes crear y el estado de su plan."
+---
+
+`GET /api/v1/integration/organization/context` devuelve, en una sola llamada, la organización de la API key, su saldo de documentos y un resumen de su plan y ciclo de facturación. Úsalo para mostrar el saldo en tu sistema o para comprobarlo antes de enviar un lote de documentos.
+
+Es una consulta: no compra créditos ni cambia el plan. Esas operaciones se hacen en Firmalo y no forman parte de la API de integración; consulta el [catálogo de servicios](/services).
+
+## Autorización
+
+La llave necesita `DOCUMENT.READ` con alcance `ORGANIZATION`. Con alcance `OWN`, la respuesta es `403 API_KEY_PERMISSION_DENIED`, porque el saldo y el plan son información de toda la organización.
+
+La organización sale de la llave. No se envía ningún identificador: un `organizationId` en el query responde `400 INTEGRATION_TENANT_OVERRIDE_NOT_ALLOWED`.
+
+## Consulta el contexto
+
+```bash
+curl "$FIRMALO_API_URL/api/v1/integration/organization/context" \
+  -H "X-API-Key: $FIRMALO_API_KEY"
+```
+
+```json
+{
+  "success": true,
+  "message": "Contexto de la organización obtenido correctamente",
+  "data": {
+    "organization": {
+      "id": "1f2e3d4c-5b6a-4978-8a9b-0c1d2e3f4a5b",
+      "name": "Empresa Ejemplo S.A. de C.V.",
+      "status": "active"
+    },
+    "signatureQuota": {
+      "planLimit": 1000,
+      "documentsSigned": 640,
+      "documentsRemaining": 410,
+      "periodStart": "2026-11-01",
+      "periodEnd": "2026-11-30"
+    },
+    "billing": {
+      "plan": "Business",
+      "status": "active",
+      "billingCycle": "monthly",
+      "nextBillingDate": "2026-12-01",
+      "paymentStatus": "paid"
+    }
+  }
+}
+```
+
+## Organización
+
+| Campo | Descripción |
+| --- | --- |
+| `organization.id` | Identificador de la organización de la llave. |
+| `organization.name` | Razón social. |
+| `organization.status` | Siempre `active`. Si la organización está desactivada, la llave responde `403 API_KEY_ORGANIZATION_INACTIVE` y no llega a esta respuesta. |
+
+## Saldo de documentos
+
+| Campo | Descripción |
+| --- | --- |
+| `signatureQuota.documentsRemaining` | Documentos que todavía puedes crear. Es el saldo real de créditos vigentes. |
+| `signatureQuota.planLimit` | Documentos que incluye el periodo vigente del plan. |
+| `signatureQuota.documentsSigned` | Documentos que terminaron de firmarse durante el periodo vigente. |
+| `signatureQuota.periodStart` | Primer día del periodo vigente, como `AAAA-MM-DD` (UTC). |
+| `signatureQuota.periodEnd` | Último día cubierto por el periodo vigente, como `AAAA-MM-DD` (UTC). |
+
+### Lee el saldo de `documentsRemaining`
+
+<Warning>
+  No calcules el saldo como `planLimit - documentsSigned`. Usa siempre `documentsRemaining`.
+</Warning>
+
+Los tres contadores miden cosas distintas:
+
+- `documentsRemaining` suma todos los créditos vigentes de la organización: los del periodo del plan, los que se arrastraron del periodo anterior y los que se compraron aparte. Por eso puede ser mayor que `planLimit`. También descuenta los créditos apartados por operaciones en curso.
+- Un crédito se consume al **crear** el documento, no al firmarlo. Un documento creado y todavía pendiente de firma ya gastó su crédito, pero no cuenta en `documentsSigned`.
+- `documentsSigned` cuenta los documentos que se completaron en el periodo, aunque se hayan creado antes. Sirve para medir la actividad, no el consumo.
+
+En el ejemplo, `1000 - 640 = 360`, pero el saldo real es `410`: la organización tiene créditos arrastrados o comprados además de los del plan.
+
+`documentsRemaining` es el saldo en el momento de la consulta. Otro proceso de tu organización puede consumir créditos justo después, así que maneja siempre el `402` al crear documentos, aunque hayas consultado el saldo antes.
+
+## Plan y facturación
+
+| Campo | Descripción |
+| --- | --- |
+| `billing.plan` | Nombre del plan, o `null` si la organización no tiene plan. |
+| `billing.status` | Estado de la suscripción: `free`, `incomplete`, `active`, `past_due` o `canceled`. `null` si la organización nunca pasó por facturación. |
+| `billing.billingCycle` | `monthly`, `yearly` o `custom` (otra duración), según el periodo vigente. `null` sin periodo. |
+| `billing.nextBillingDate` | Fecha de la próxima renovación, como `AAAA-MM-DD` (UTC). `null` si no habrá otro cobro: plan gratuito, suscripción cancelada o baja programada al final del periodo. |
+| `billing.paymentStatus` | `paid` (al corriente), `past_due` (falló un cobro), `pending` (contratación sin confirmar) o `not_applicable` (sin plan de pago). |
+
+La respuesta nunca incluye datos de tarjeta, tokens de pago, facturas ni datos bancarios.
+
+## Organizaciones sin plan ni facturación
+
+Si la organización nunca pasó por facturación, la consulta responde `200` con los contadores en `0` y los datos del plan en `null`:
+
+```json
+{
+  "signatureQuota": {
+    "planLimit": 0,
+    "documentsSigned": 0,
+    "documentsRemaining": 0,
+    "periodStart": null,
+    "periodEnd": null
+  },
+  "billing": {
+    "plan": null,
+    "status": null,
+    "billingCycle": null,
+    "nextBillingDate": null,
+    "paymentStatus": "not_applicable"
+  }
+}
+```
+
+Otros casos frecuentes:
+
+- **Plan gratuito:** `billing.status` es `free`, `paymentStatus` es `not_applicable` y `nextBillingDate` es `null`. `planLimit` son los documentos de bienvenida.
+- **Suscripción cancelada o con baja programada:** `nextBillingDate` es `null`. Los créditos que queden vigentes siguen contando en `documentsRemaining`.
+- **Cobro fallido:** `paymentStatus` es `past_due`. Pide a un administrador de tu organización que actualice el pago en Firmalo.
+
+En todos los casos, el dato que decide si puedes crear un documento es `documentsRemaining`.
+
+## Sin créditos: `INSUFFICIENT_DOCUMENT_CREDITS`
+
+Si la organización no tiene créditos, `POST /api/v1/integration/documents` responde `402`:
+
+```json
+{
+  "success": false,
+  "error": {
+    "code": "INSUFFICIENT_DOCUMENT_CREDITS",
+    "message": "No tienes documentos disponibles. Compra más o espera a tu próximo periodo."
+  }
+}
+```
+
+No se crea nada y la `Idempotency-Key` queda libre para reintentar.
+
+<Steps>
+  <Step title="Detén los envíos">
+    Repetir la petición no resuelve un `402`. Pausa la creación de documentos en tu sistema y conserva cada petición pendiente con su `Idempotency-Key`.
+  </Step>
+  <Step title="Consigue créditos en Firmalo">
+    Un administrador de tu organización compra créditos o cambia de plan desde Firmalo. También puedes esperar a la renovación del periodo (`billing.nextBillingDate`).
+  </Step>
+  <Step title="Comprueba el saldo">
+    Consulta `GET /api/v1/integration/organization/context` hasta que `signatureQuota.documentsRemaining` sea mayor que `0`.
+  </Step>
+  <Step title="Reintenta">
+    Reenvía cada documento pendiente con la misma `Idempotency-Key` y el mismo contenido. Consulta [Idempotencia](/idempotency).
+  </Step>
+</Steps>
+
+Los demás errores están en [Errores](/errors). La definición completa del endpoint está en la sección **Organización** de la pestaña **Referencia API**.

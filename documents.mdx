@@ -1,0 +1,88 @@
+---
+title: "Documentos"
+description: "Crea documentos con su flujo de firmas y consulta los de tu organización o los de uno de sus usuarios."
+---
+
+| Operación | Endpoint | Permiso de la llave |
+| --- | --- | --- |
+| Crear un documento | `POST /api/v1/integration/documents` | `DOCUMENT.CREATE`, alcance `ORGANIZATION` |
+| Consultar los documentos de la organización | `GET /api/v1/integration/documents` | `DOCUMENT.READ`, alcance `ORGANIZATION` |
+| Consultar los documentos creados por un usuario | `GET /api/v1/integration/users/documents?email=` | `DOCUMENT.READ`, alcance `OWN` u `ORGANIZATION` |
+
+## Crea un documento
+
+`POST /api/v1/integration/documents` recibe el PDF y los participantes en una petición `multipart/form-data`, crea el documento y envía las invitaciones de firma. El paso a paso, con un ejemplo completo, está en [Inicio rápido](/quickstart).
+
+- El header `Idempotency-Key` es obligatorio. Te permite reintentar sin crear ni cobrar el documento dos veces; consulta [Idempotencia](/idempotency).
+- Cada documento creado consume un crédito. Sin créditos, la respuesta es `402 INSUFFICIENT_DOCUMENT_CREDITS`; consulta [Organización y créditos](/organization-and-credits).
+- `creator.email` identifica a quien crea el documento dentro de tu organización.
+
+Todos los campos del `payload` y sus validaciones están en la pestaña **Referencia API**.
+
+## Consulta los documentos de la organización
+
+```bash
+curl "$FIRMALO_API_URL/api/v1/integration/documents?statuses=PENDING_SIGNATURE&statuses=SIGNED&limit=50" \
+  -H "X-API-Key: $FIRMALO_API_KEY"
+```
+
+```json
+{
+  "success": true,
+  "message": "Documentos obtenidos correctamente",
+  "data": {
+    "items": [
+      {
+        "id": "7d1f2a3b-4c5d-4e6f-8a9b-0c1d2e3f4a5b",
+        "fileName": "contrato.pdf",
+        "status": "PENDING_SIGNATURE",
+        "signatureType": "SIMPLE",
+        "createdAt": "2026-10-26T12:00:00.000Z",
+        "signedAt": null
+      }
+    ],
+    "pagination": { "page": 1, "limit": 50, "total": 1, "totalPages": 1 }
+  }
+}
+```
+
+El listado no incluye la URL del archivo ni los datos de los participantes.
+
+| Parámetro | Descripción |
+| --- | --- |
+| `statuses` | Uno o varios estatus. Repite el parámetro (`?statuses=PENDING_SIGNATURE&statuses=SIGNED`) o sepáralos por comas. |
+| `createdFrom`, `createdTo` | Rango de fecha de creación, en ISO 8601. |
+| `signedFrom`, `signedTo` | Rango de fecha de firma, en ISO 8601. |
+| `sortBy` | `createdAt` (por omisión), `signedAt`, `fileName` o `status`. |
+| `sortDirection` | `DESC` (por omisión) o `ASC`. |
+| `page` | Página, desde `1`. |
+| `limit` | Resultados por página, de `1` a `100`. Por omisión, `25`. |
+| `creatorEmail` | Opcional. Sólo los documentos que creó ese miembro de la organización. |
+
+Los estatus posibles son `CREATED`, `PENDING_APPROVAL`, `PENDING_SIGNATURE`, `SIGNED`, `REJECTED`, `EXPIRED`, `CANCELLATION_PENDING` y `CANCELLED`. Se escriben en mayúsculas; un valor desconocido responde `422 INVALID_REQUEST`.
+
+Sin `creatorEmail`, la llave necesita el alcance `ORGANIZATION`. Con `creatorEmail`, se aplican las reglas de la consulta por usuario.
+
+## Consulta los documentos de un usuario
+
+`GET /api/v1/integration/users/documents` devuelve los documentos que creó el miembro de tu organización con ese correo. `email` es obligatorio y no distingue mayúsculas. Admite la misma paginación y los mismos filtros que el listado de la organización.
+
+```bash
+curl -G "$FIRMALO_API_URL/api/v1/integration/users/documents" \
+  --data-urlencode "email=ana.lopez@cliente.example" \
+  -H "X-API-Key: $FIRMALO_API_KEY"
+```
+
+- Con alcance `ORGANIZATION`, puedes consultar a cualquier miembro activo de la organización.
+- Con alcance `OWN`, sólo puedes consultar los documentos de quien emitió la llave. Cualquier otro correo responde `403 INTEGRATION_SCOPE_DENIED`, sea o no de un miembro.
+
+| Estado | Código | Qué significa |
+| --- | --- | --- |
+| `403` | `INTEGRATION_SCOPE_DENIED` | La llave sólo tiene alcance `OWN` y el correo no es el de quien la emitió. |
+| `404` | `INTEGRATION_USER_NOT_FOUND` | El correo no es de un miembro activo de la organización. |
+| `409` | `INTEGRATION_AMBIGUOUS_USER` | El correo corresponde a más de un miembro. |
+| `422` | `INVALID_REQUEST` | Falta `email` o algún filtro no es válido. |
+
+<Note>
+  Las rutas anteriores que identificaban a la persona por su identificador interno, como `GET /api/v1/integration/users/{userId}/documents`, ya no forman parte de la API y responden `410 INTEGRATION_ENDPOINT_RETIRED`, con la ruta nueva en `details.replacedBy`. Usa el correo.
+</Note>

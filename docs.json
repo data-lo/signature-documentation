@@ -37,6 +37,10 @@
         ]
       },
       {
+        "tab": "Servicios de la API",
+        "pages": ["services", "documents", "organization-and-credits", "signing-access"]
+      },
+      {
         "tab": "Referencia API",
         "openapi": "https://signature.api.staging.data-lo.online/api/v1/integration/docs-json"
       }

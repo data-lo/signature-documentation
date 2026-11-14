@@ -9,18 +9,20 @@ En esta guía creas un documento con un firmante y consultas su estado.
 
 Necesitas una [API key](/authentication) autorizada para crear y consultar documentos, créditos de documento disponibles en tu organización y un PDF.
 
+Guarda el host de la API y tu llave en variables de entorno:
+
+```bash
+export FIRMALO_API_URL="https://<host>"
+export FIRMALO_API_KEY="<tu-api-key>"
+```
+
 Para ver cuántos créditos te quedan, consulta el contexto de tu organización. Requiere que la llave tenga `DOCUMENT.READ` con alcance `ORGANIZATION`:
 
 ```bash
 curl "$FIRMALO_API_URL/api/v1/integration/organization/context"   -H "X-API-Key: $FIRMALO_API_KEY"
 ```
 
-`data.signatureQuota.documentsRemaining` es el saldo disponible. La respuesta completa está en la sección **Organización** de la pestaña **Referencia API**.
-
-```bash
-export FIRMALO_API_URL="https://<host>"
-export FIRMALO_API_KEY="<tu-api-key>"
-```
+`data.signatureQuota.documentsRemaining` es el saldo disponible. No lo calcules a partir del límite del plan; [Organización y créditos](/organization-and-credits) explica por qué.
 
 ## Crea el documento
 
@@ -91,4 +93,5 @@ curl "$FIRMALO_API_URL/api/v1/integration/documents?statuses=SIGNED&limit=25" \
 ## Siguientes pasos
 
 - Revisa qué hacer cuando algo falla en [Errores](/errors).
+- Conoce todas las operaciones disponibles en el [catálogo de servicios](/services).
 - Consulta todos los campos y endpoints en la pestaña **Referencia API**.
