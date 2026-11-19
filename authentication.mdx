@@ -18,6 +18,14 @@ Una API key tiene el formato `fma_live_<publicId>_<secret>`. Se emite, se rota y
   El secreto completo sólo se muestra al emitir la llave. Guárdalo en el gestor de secretos de tu backend.
 </Warning>
 
+## Llama a la API desde tu backend
+
+En producción, la API key vive sólo en tu backend: nunca la incluyas en un navegador, una app móvil ni un repositorio.
+
+<Info>
+  Las solicitudes que envías desde la pestaña **Referencia API** van las peticiones a **staging** (`https://signature.api.staging.data-lo.online`). Úsalos sólo con una API key de staging: pégala una vez en el campo `X-API-Key` y se reutiliza en todos los endpoints. Las peticiones pasan por el proxy de Mintlify, no salen directo de tu navegador a la API.
+</Info>
+
 ## La organización sale de la llave
 
 La organización y el contexto de acceso se resuelven a partir de la llave. No uses JWT, `X-Account-Id` ni `X-Organization-Id`.

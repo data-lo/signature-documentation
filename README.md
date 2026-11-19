@@ -16,12 +16,14 @@ logo/ y favicon.png    Marca, copiada de signature-site/public/brand
 
 ## Referencia API
 
-La pestaña **Referencia API** no tiene archivos aquí: Mintlify lee en cada despliegue el contrato que publica el backend en `https://<api-producción>/api/v1/integration/docs-json`. Ese contrato sólo contiene las rutas `/api/v1/integration/...`, así que un endpoint nuevo aparece al redesplegar este sitio, sin cambios en este repositorio.
+La pestaña **Referencia API** no tiene archivos aquí: Mintlify lee en cada despliegue el contrato que publica el backend en `/api/v1/integration/docs-json`. Ese contrato sólo contiene las rutas `/api/v1/integration/...`, así que un endpoint nuevo aparece al redesplegar este sitio, sin cambios en este repositorio.
 
-- La URL está en `navigation.tabs[1].openapi` de `docs.json`. Mientras no se defina el host de producción apunta a `https://api.firmalo.example`, que no existe: el build falla hasta reemplazarla.
+- La URL está en `navigation.tabs[1].openapi` de `docs.json` y hoy apunta a staging: `https://signature.api.staging.data-lo.online/api/v1/integration/docs-json`.
 - Mintlify sólo acepta URLs `https://` en producción.
-- El playground está desactivado (`api.playground.display: "none"`): la referencia es de consulta.
-- El contrato no declara `servers`, así que la referencia muestra las rutas sin host.
+- El playground es interactivo (`api.playground.display: "interactive"`) **sólo porque la URL apunta a staging**. Las peticiones van al host que declara `servers` en el contrato, que el backend toma de `INTEGRATION_API_PUBLIC_URL` (en staging, `https://signature.api.staging.data-lo.online`); sin esa variable no hay `servers` y el playground no sabría a dónde enviar.
+- Las peticiones pasan por el proxy de Mintlify (`api.playground.proxy: true`), así que `signature-server` no necesita permitir el dominio de la documentación en CORS. Si algún día se desactiva el proxy, hay que agregar a CORS exclusivamente ese dominio.
+- La autenticación es el esquema `X-API-Key` del contrato: se pega una vez y se reutiliza en todos los endpoints. Usa sólo llaves de staging y no agregues llaves reales a este repositorio, a ejemplos ni a `docs.json`.
+- **Producción no tiene playground.** Antes de apuntar `openapi` al contrato de producción, vuelve a poner `api.playground.display: "none"` y no definas `INTEGRATION_API_PUBLIC_URL` en el backend de producción, hasta que se apruebe la política de manejo de API keys y proxy. En producción las llaves se usan sólo desde el backend del cliente.
 
 ## Agregar una página
 
