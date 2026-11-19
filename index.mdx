@@ -3,21 +3,21 @@ title: "Introducción"
 description: "Integra la firma electrónica de Firmalo en tu sistema."
 ---
 
-La API de integración de Firmalo permite que tu sistema cree documentos PDF con su flujo de firmas, consulte su estado y gestione el acceso de los firmantes, sin que tus usuarios tengan que entrar a la plataforma para iniciar el proceso.
+Con la API de integración, tu sistema crea documentos PDF para firma, invita a los firmantes y consulta el resultado, sin que tus usuarios entren a Firmalo.
 
 ## Qué puedes hacer
 
-- Crear un documento a partir de un PDF e invitar a sus firmantes y testigos por correo.
-- Consultar los documentos de tu organización, o los de uno de sus usuarios, y su estado.
-- Reenviar la invitación de un firmante.
-- Generar una URL temporal para que un firmante firme desde tu portal.
-- Consultar el saldo de documentos, el plan y el ciclo de facturación de tu organización.
+- Crear un documento a partir de un PDF e invitar por correo a sus firmantes y testigos.
+- Consultar el estado de los documentos de tu organización o de uno de sus miembros.
+- Reenviar la invitación a un firmante.
+- Generar un enlace para que un firmante firme desde tu portal.
+- Consultar el saldo de documentos y el plan de tu organización.
 
 ## Cómo funciona
 
 <Steps>
   <Step title="Tu backend crea el documento">
-    Envía el PDF y los datos de los participantes con la API key de tu organización. Cada documento creado consume un crédito.
+    Envía el PDF y los participantes con la API key de tu organización. Cada documento consume un crédito.
   </Step>
   <Step title="Firmalo invita a los participantes">
     Cada participante recibe un correo. En un documento secuencial, los firmantes firman uno a la vez.
@@ -27,10 +27,6 @@ La API de integración de Firmalo permite que tu sistema cree documentos PDF con
   </Step>
 </Steps>
 
-<Warning>
-  Llama a la API sólo desde tu backend. Nunca expongas la API key en un navegador o una app móvil.
-</Warning>
-
 ## Continúa con
 
 <CardGroup cols={2}>
@@ -38,13 +34,13 @@ La API de integración de Firmalo permite que tu sistema cree documentos PDF con
     Crea tu primer documento.
   </Card>
   <Card title="Autenticación" icon="key" href="/authentication">
-    Cómo presentar la API key de tu organización.
+    Envía la API key de tu organización.
   </Card>
   <Card title="Idempotencia" icon="rotate" href="/idempotency">
-    Reintenta sin crear ni cobrar documentos duplicados.
+    Reintenta sin duplicar ni cobrar dos veces.
   </Card>
   <Card title="Errores" icon="triangle-exclamation" href="/errors">
-    Qué responde la API cuando algo falla.
+    Qué hacer cuando algo falla.
   </Card>
   <Card title="Webhooks" icon="bell" href="/webhooks">
     Recibe los eventos de firma en tu sistema.
