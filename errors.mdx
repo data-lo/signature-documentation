@@ -1,6 +1,6 @@
 ---
 title: "Errores"
-description: "Cómo interpretar las respuestas de error de la API."
+description: "Interpreta las respuestas de error y decide qué hacer."
 ---
 
 Todos los errores tienen la misma forma:
@@ -19,47 +19,61 @@ Todos los errores tienen la misma forma:
 }
 ```
 
-Decide qué hacer a partir de `code`, que es estable. `message` es texto legible y puede cambiar. `details` es opcional y, en los errores de validación, `details.field` indica el campo afectado.
+Decide qué hacer según `code`, que no cambia. `message` es para personas y puede cambiar. En los errores de validación, `details.field` señala el campo que debes corregir.
+
+Cada respuesta, también las de error, trae el header `X-Request-Id`. Indícalo al reportar un problema.
 
 ## Códigos de estado
 
 | Estado | Cuándo ocurre | Qué hacer |
 | --- | --- | --- |
-| `400` | La petición está mal formada, por ejemplo, falta `Idempotency-Key` o intenta elegir la organización. | Corrige la petición. |
+| `400` | Falta `Idempotency-Key`, la petición trae un identificador de organización o usuario, o pide aprobación previa (`requiresApproval: true`). | Corrige la petición. |
 | `401` | La API key falta, es inválida, venció o fue revocada. | Revisa la [autenticación](/authentication). |
-| `402` | `INSUFFICIENT_DOCUMENT_CREDITS`: la organización no tiene créditos. | Consulta el saldo en `GET /api/v1/integration/organization/context` (`signatureQuota.documentsRemaining`), adquiere créditos y reintenta con la misma `Idempotency-Key`. |
-| `403` | La llave no está autorizada, o la organización o quien emitió la llave están inactivos. | Revisa la llave en Integraciones. |
-| `404` | El recurso no existe en tu organización. | Verifica los identificadores. |
-| `409` | Conflicto con el estado actual; consulta los casos abajo. | Depende del código. |
-| `422` | El contenido no pasó la validación. | Corrige el campo de `details.field`. |
-| `429` | `TOO_MANY_REQUESTS`: demasiados intentos para ese firmante. | Espera antes de reintentar. |
-| `500` | `INTERNAL_ERROR`: fallo inesperado. | Reintenta más tarde con la misma `Idempotency-Key`; consulta [Idempotencia](/idempotency). |
+| `402` | `INSUFFICIENT_DOCUMENT_CREDITS`: no quedan créditos de documento. `INSUFFICIENT_BIOMETRIC_CREDITS`: faltan créditos biométricos; `details` indica cuántos se necesitan (`required`) y cuántos hay (`available`). | Consulta el saldo en `GET /api/v1/integration/organization/context`, recarga y reintenta con la misma `Idempotency-Key`. |
+| `403` | La llave no tiene el permiso, la integración o la organización están desactivadas, una llave con alcance `OWN` pide documentos de otra persona (`INTEGRATION_SCOPE_DENIED`), o el plan no incluye firma biométrica (`FORBIDDEN`). | Revisa la llave y sus permisos en Integraciones, o el plan de tu organización. |
+| `404` | El documento, el firmante o el miembro no existe en tu organización. | Revisa el `id` o el correo. |
+| `409` | Conflicto con el estado actual; consulta las tablas de abajo. | Depende del código. |
+| `410` | `INTEGRATION_ENDPOINT_RETIRED`: usas una ruta anterior que identificaba a las personas por `id`. | Usa la ruta de `details.replacedBy`, que las identifica por correo. |
+| `422` | El contenido no pasó la validación. | Corrige el campo de `details.field`, o los de `details.errors`. |
+| `429` | `TOO_MANY_REQUESTS`: demasiados enlaces o reenvíos para un firmante. | Espera unos minutos antes de reintentar. |
+| `500` | `INTERNAL_ERROR`: fallo inesperado. | Reintenta más tarde. Al crear documentos, usa la misma `Idempotency-Key`. |
 | `503` | `WEBHOOK_SECRET_ENCRYPTION_UNAVAILABLE`: no se pudo generar el secreto del webhook. | Reintenta más tarde; no se guardó nada. |
 
 ## Conflictos al crear documentos
 
 | Código | Qué significa | Qué hacer |
 | --- | --- | --- |
-| `INTEGRATION_IDEMPOTENCY_KEY_IN_PROGRESS` | Otra petición con la misma clave sigue en curso. | Espera unos segundos y repite la petición. |
-| `INTEGRATION_IDEMPOTENCY_KEY_MISMATCH` | La clave ya se usó con otro archivo o con otros datos. | Usa una clave nueva para un documento nuevo. |
+| `INTEGRATION_IDEMPOTENCY_KEY_IN_PROGRESS` | Otra petición con la misma clave sigue en curso. | Espera unos segundos y repite. |
+| `INTEGRATION_IDEMPOTENCY_KEY_MISMATCH` | La clave ya se usó con otro PDF u otro `payload`. | Usa una clave nueva. |
+
+## Conflictos con firmantes
+
+Al pedir un enlace de firma o reenviar una invitación:
+
+| Código | Qué significa | Qué hacer |
+| --- | --- | --- |
+| `WAITING_FOR_PREVIOUS_SIGNER` | El documento es secuencial y todavía no es el turno del firmante. | Pide el enlace cuando haya firmado el anterior. |
+| `INTEGRATION_INVITATION_NOT_RESENDABLE` | El firmante ya respondió, el documento ya no espera firmas o el firmante firma desde su cuenta de Firmalo. Al reenviar, también cuando aún no es su turno. | No reintentes; consulta el estado del documento. |
+| `INTEGRATION_AMBIGUOUS_SIGNER` | Más de un firmante del documento tiene ese correo. | Contacta a soporte con el `X-Request-Id`. |
 
 ## Errores de validación frecuentes
 
 | Código | Qué significa |
 | --- | --- |
 | `INVALID_PAYLOAD` | `payload` falta, no es JSON o no es un objeto. |
-| `INVALID_DOCUMENT_FILE` | El archivo no es un PDF legible. |
-| `SIGNER_REQUIRED` | El documento no tiene ningún participante con rol `SIGNER`. |
+| `INVALID_DOCUMENT_FILE` | El archivo no es un PDF legible o pesa más de 20 MB. |
+| `SIGNER_REQUIRED` | Ningún participante tiene `role: SIGNER`. |
 | `DUPLICATE_PARTICIPANT_EMAIL` | Un correo aparece más de una vez en `participants`. |
-| `INVALID_SIGNING_ORDER` | Falta `order` o no es un entero válido en un documento secuencial. |
+| `INVALID_SIGNING_ORDER` | En un documento secuencial, falta `order` o no es consecutivo desde `1`. |
 | `SIGNER_SIGNATURE_POSITION_REQUIRED` | Un firmante no tiene posición de firma. |
 | `SIGNATURE_POSITION_OVERLAP` | Dos posiciones de firma se traslapan en la misma página. |
+| `INVALID_REQUEST` | Un parámetro o campo no es válido; `details.errors` lista cada problema. |
 
 ## Errores de webhooks
 
 | Código | Qué significa |
 | --- | --- |
-| `WEBHOOK_ENDPOINT_NOT_FOUND` | La organización no tiene un endpoint de webhooks configurado. Créalo con `PUT`. |
-| `WEBHOOK_URL_NOT_ALLOWED` | La URL no es un destino permitido; el motivo va en `details.reason`. Consulta [Webhooks](/webhooks). |
+| `WEBHOOK_ENDPOINT_NOT_FOUND` | Tu organización no tiene un endpoint configurado. Créalo con `PUT`. |
+| `WEBHOOK_URL_NOT_ALLOWED` | La URL no es un destino permitido; el motivo está en `details.reason`. Consulta [Webhooks](/webhooks). |
 
 La pestaña **Referencia API** lista los errores de cada endpoint.
